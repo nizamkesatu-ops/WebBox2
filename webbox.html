@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webblox - Platform Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+        * { font-family: 'Poppins', sans-serif; }
+        body { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); }
+        .game-card { transition: all 0.3s ease; }
+        .game-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,255,255,0.2); }
+        .btn-primary { background: linear-gradient(45deg, #00f5ff, #0099ff); transition: all 0.3s ease;}
+        .btn-primary:hover { background: linear-gradient(45deg, #0099ff, #00f5ff); box-shadow: 0 0 20px rgba(0,245,255,0.5); }
+        .loading { animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .liked { color: #ff4d6d !important; }
+    </style>
+</head>
+<body class="text-white min-h-screen">
+
+    <!-- NAVBAR -->
+    <nav class="bg-black/50 backdrop-blur-md sticky top-0 z-50 border-b border-cyan-500/30">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <h1 class="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+                <i class="fas fa-cube mr-2"></i>WEBBLOX
+            </h1>
+            <div class="flex gap-2">
+                <button onclick="showPage('home')" class="px-3 py-2 rounded-lg hover:bg-white/10">
+                    <i class="fas fa-home"></i> Home
+                </button>
+                <button onclick="showPage('create')" class="btn-primary px-4 py-2 rounded-lg font-bold">
+                    <i class="fas fa-plus"></i> Buat Game
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-4 py-6">
+
+        <!-- HALAMAN HOME -->
+        <div id="page-home" class="page-content">
+            <h2 class="text-xl font-bold mb-4"><i class="fas fa-gamepad text-green-400"></i> Game Kamu</h2>
+            <div id="gamesContainer" class="grid grid-cols-2 gap-4">
+                <!-- Game akan muncul di sini -->
+            </div>
+        </div>
+
+        <!-- HALAMAN UPLOAD / BUAT GAME -->
+        <div id="page-create" class="page-content hidden">
+            <div class="max-w-3xl mx-auto bg-white/5 rounded-2xl p-6 border border-white/10">
+                <h2 class="text-2xl font-bold mb-6 text-center"><i class="fas fa-magic text-cyan-400"></i> Buat Game Baru</h2>
+                
+                <form id="uploadForm" class="space-y-4">
+                    <div>
+                        <label class="block mb-2 font-semibold">Nama Game</label>
+                        <input type="text" id="gameName" required placeholder="Contoh: Petualangan Seru"
+                               class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block mb-2 font-semibold">Deskripsi</label>
+                        <textarea id="gameDesc" rows="2" placeholder="Ceritakan tentang game kamu..."
+                                  class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 outline-none"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block mb-2 font-semibold">Upload Gambar / Thumbnail</label>
+                        <input type="file" id="gameImage" accept="image/*" required
+                               class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-cyan-500 file:text-white">
+                    </div>
+
+                    <div>
+                        <label class="block mb-2 font-semibold">Kode Game (HTML/CSS/JS)</label>
+                        <textarea id="gameCode" rows="8" required placeholder="Tulis atau paste kode HTML kamu disini..."
+                                  class="w-full px-4 py-3 rounded-lg bg-black/50 font-mono text-green-400 border border-white/20 outline-none"></textarea>
+                    </div>
+
+                    <button type="submit" id="submitBtn" class="w-full btn-primary py-4 rounded-xl font-bold text-lg">
+                        <i class="fas fa-save mr-2"></i> Buat & Dapatkan Link
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- HALAMAN MAIN GAME -->
+        <div id="page-play" class="page-content hidden">
+            <div class="mb-4 flex items-center gap-4">
+                <button onclick="showPage('home')" class="bg-white/10 px-4 py-2 rounded-lg hover:bg-white/20">
+                    <i class="fas fa-arrow-left"></i> Kembali
+                </button>
+                <h2 id="playTitle" class="text-xl md:text-2xl font-bold"></h2>
+            </div>
+            
+            <div class="bg-black rounded-xl overflow-hidden border-4 border-white/20 shadow-2">
+                <iframe id="gameFrame" class="w-full" style="height: 80vh; border: none;"></iframe>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let games = JSON.parse(localStorage.getItem('webblox_games') || '[]');
+        let likedGames = JSON.parse(localStorage.getItem('webblox_liked') || '[]');
+
+        function showPage(pageName) {
+            document.querySelectorAll('.page-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById('page-' + pageName).classList.remove('hidden');
+        }
+
+        function saveGamesLocal() {
+            localStorage.setItem('webblox_games', JSON.stringify(games));
+        }
+
+        function renderGames() {
+            const container = document.getElementById('gamesContainer');
+            
+            if(games.length === 0){
+                container.innerHTML = `<div class="col-span-full text-center py-10 text-gray-400">
+                    <i class="fas fa-gamepad text-5xl mb-3"></i><br>
+                    Belum ada game. Yuk buat game pertama!
+                </div>`;
+                return;
+            }
+
+            container.innerHTML = games.map(game => {
+                const isLiked = likedGames.includes(String(game.id)) ? 'liked' : '';
+                return `
+                <div class="game-card bg-white/10 rounded-xl overflow-hidden border border-white/10">
+                    <img src="${game.image}" class="w-full h-32 object-cover" alt="${game.name}">
+                    <div class="p-3">
+                        <h3 class="font-bold text-sm md:text-base truncate">${game.name}</h3>
+                        <p class="text-xs text-gray-400 mb-2 truncate">${game.desc}</p>
+                        
+                        <div class="flex justify-between items-center">
+                            <button onclick="likeGame('${game.id}')" 
+                                    class="text-sm flex items-center gap-1 ${isLiked}">
+                                <i class="fas fa-heart"></i> ${game.likes || 0}
+                            </button>
+                            
+                            <button onclick="playGame('${game.id}')" 
+                                    class="text-xs bg-cyan-500 px-3 py-1 rounded-lg font-bold hover:bg-cyan-400">
+                                MAIN 🎮
+                            </button>
+                        </div>
+
+                        <button onclick="shareGame('${game.id}')" 
+                                class="w-full mt-2 text-xs bg-green-600 hover:bg-green-500 rounded py-1">
+                            <i class="fas fa-share-alt"></i> Share Link
+                        </button>
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        function playGame(id) {
+            const game = games.find(g => g.id == id);
+            if(game) {
+                document.getElementById('playTitle').innerText = game.name;
+                document.getElementById('gameFrame').srcdoc = game.code;
+                showPage('play');
+            }
+        }
+
+        function likeGame(id) {
+            if(likedGames.includes(id)) {
+                alert("❌ Sudah like!");
+                return;
+            }
+            const game = games.find(g => g.id == id);
+            if(game) {
+                game.likes = (game.likes || 0) + 1;
+                likedGames.push(id);
+                localStorage.setItem('webblox_liked', JSON.stringify(likedGames));
+                saveGamesLocal();
+                renderGames();
+            }
+        }
+
+        function shareGame(id) {
+            const game = games.find(g => g.id == id);
+            if(game) {
+                // Masukkan data game ke dalam link
+                const gameData = btoa(JSON.stringify(game)); // Encoding data
+                const shareLink = window.location.origin + window.location.pathname + `?game=${gameData}`;
+                
+                if(navigator.share) {
+                    navigator.share({
+                        title: 'Main Game ' + game.name,
+                        text: 'Coba main game buatan aku!',
+                        url: shareLink
+                    });
+                } else {
+                    prompt('Copy link ini dan kirim ke teman:', shareLink);
+                }
+            }
+        }
+
+        // CEK APAKAH DIBUKA DARI LINK SHARE
+        function checkSharedGame() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const gameData = urlParams.get('game');
+            
+            if(gameData) {
+                try {
+                    const game = JSON.parse(atob(gameData));
+                    // Cek apakah game ini sudah ada di list
+                    const exists = games.some(g => g.id == game.id);
+                    if(!exists) {
+                        games.unshift(game);
+                        saveGamesLocal();
+                        renderGames();
+                    }
+                    playGame(game.id);
+                } catch(e) {
+                    console.error("Link rusak");
+                }
+            }
+        }
+
+        // UPLOAD / SIMPAN GAME
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const btn = document.getElementById('submitBtn');
+            btn.innerHTML = `<i class="fas fa-spinner loading mr-2"></i> Memproses...`;
+            btn.disabled = true;
+
+            const name = document.getElementById('gameName').value;
+            const desc = document.getElementById('gameDesc').value;
+            const code = document.getElementById('gameCode').value;
+            const file = document.getElementById('gameImage').files[0];
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const newGame = {
+                    id: Date.now().toString(),
+                    name: name,
+                    desc: desc,
+                    image: e.target.result,
+                    code: code,
+                    likes: 0
+                };
+                
+                games.unshift(newGame);
+                saveGamesLocal();
+                renderGames();
+                showPage('home');
+                btn.innerHTML = `<i class="fas fa-save mr-2"></i> Buat & Dapatkan Link`;
+                btn.disabled = false;
+                document.getElementById('uploadForm').reset();
+                
+                // Langsung tawarin share
+                setTimeout(() => {
+                    if(confirm('✅ Game Berhasil! Mau share link ke HP lain sekarang?')) {
+                        shareGame(newGame.id);
+                    }
+                }, 500);
+            }
+            reader.readAsDataURL(file);
+        });
+
+        // MULAI
+        showPage('home');
+        renderGames();
+        checkSharedGame(); // Cek apakah ada game dari link
+
+    </script>
+
+</body>
+</html>
